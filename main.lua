@@ -8,50 +8,55 @@
 width, height = love.graphics.getDimensions()
 local voronoiCalculate = true
 function love.load()
-     player1 = {rx = 100, ry = 100, x = 100, y = 100, size = 16, r = 255, g = 0, b = 0, speed = 100}
-     player2 = {rx = 500, ry = 500, x = 500, y = 500, size = 16, r = 0, g = 0, b = 255, speed = 100}
-     player3 = {rx = 800, ry = 100, x = 800, y = 100, size = 16, r = 0, g = 255, b = 0, speed = 100}
+    objects = {{x = love.math.random(200,500), y = love.math.random(200,800), size = 16, r = 255, g = 0, b = 0, speed = 100},
+        {x = love.math.random(200,500), y = love.math.random(200,800), size = 16, r = 0, g = 0, b = 255, speed = 100}
+        }--{x = 800, y = 100, size = 16, r = 0, g = 255, b = 0, speed = 100}}
+    voronoiDiagramObjects = Voronoi(160,0,width-160,height,objects,255)
+    players = {{rx = 200, ry = 200, x = 100, y = 100, size = 16, r = 255, g = 0, b = 0, speed = 100},
+        {rx = 500, ry = 500, x = 500, y = 500, size = 16, r = 0, g = 0, b = 255, speed = 100}
+        }--{rx = 800, ry = 100, x = 800, y = 100, size = 16, r = 0, g = 255, b = 0, speed = 100}}
 end
 
 function love.update(dt)
     if love.keyboard.isDown('w') then
-        player1.ry = player1.ry - player1.speed*dt
+        players[1].ry = players[1].ry - players[1].speed*dt
     elseif love.keyboard.isDown('a') then
-        player1.rx = player1.rx - player1.speed*dt
+        players[1].rx = players[1].rx - players[1].speed*dt
     elseif love.keyboard.isDown('s') then
-        player1.ry = player1.ry + player1.speed*dt
+        players[1].ry = players[1].ry + players[1].speed*dt
     elseif love.keyboard.isDown('d') then
-        player1.rx = player1.rx + player1.speed*dt
-    end
-    --Funkar inte om alla är utanför bilden åt samma håll
-    if player1.x ~= player1.rx and player1.rx > 100 and player1.rx < width-100 then
-        player1.x = player1.rx
-    end
-    if player1.y ~= player1.ry and player1.ry > 100 and player1.ry < height-100 then
-        player1.y = player1.ry
+        players[1].rx = players[1].rx + players[1].speed*dt
     end
     if love.keyboard.isDown('up') then
-        player2.y = player2.y - player2.speed*dt
+        players[2].ry = players[2].ry - players[2].speed*dt
     elseif love.keyboard.isDown('left') then
-        player2.x = player2.x - player2.speed*dt
+        players[2].rx = players[2].rx - players[2].speed*dt
     elseif love.keyboard.isDown('down') then
-        player2.y = player2.y + player2.speed*dt
+        players[2].ry = players[2].ry + players[2].speed*dt
     elseif love.keyboard.isDown('right') then
-        player2.x = player2.x + player2.speed*dt
+        players[2].rx = players[2].rx + players[2].speed*dt
+    end
+    --Funkar inte om alla är utanför bilden åt samma håll
+    for i = 1, #players do
+        if players[i].x ~= players[i].rx and players[i].rx > 100 and players[i].rx < width-100 then
+            players[i].x = players[i].rx
+        end
+        if players[i].y ~= players[i].ry and players[i].ry > 100 and players[i].ry < height-100 then
+            players[i].y = players[i].ry
+        end
     end
     if voronoiCalculate then
-        voronoiDiagram = Voronoi(width,hight,{player1,player2,player3})
+        voronoiDiagram = Voronoi(160,0,width-160,height,players,127)
     end
     voronoiCalculate = not voronoiCalculate
 end
 
 function love.draw()
-    love.graphics.draw( voronoiDiagram )
-    love.graphics.rectangle('fill', player1.x, player1.y, player1.size, player1.size)
-   --love.graphics.line(player1.x, player1.y, player1.x+(player2.x-player1.x)/2, player1.y+(player2.y-player1.y)/2)
-    love.graphics.rectangle('fill', player2.x, player2.y, player2.size, player2.size)
-    --love.graphics.line(player2.x, player2.y, player2.x+(player1.x-player2.x)/2, player2.y+(player1.y-player2.y)/2)
-    love.graphics.rectangle('fill', player3.x, player3.y, player3.size, player3.size)
+    love.graphics.draw(voronoiDiagramObjects)
+    love.graphics.draw(voronoiDiagram)
+    for i = 1, #players do
+        love.graphics.rectangle('fill', players[i].x, players[i].y, players[i].size, players[i].size)
+    end
     love.graphics.print(love.timer.getFPS(), 0, 0)
 end
 
@@ -59,14 +64,14 @@ function hypot( x, y )
     return math.sqrt( x*x + y*y )
 end
 
-function Voronoi(width,hight,players)
+function Voronoi(tx,ty,width,hight,players,alpha)
     canvas = love.graphics.newCanvas(width, height)
     local imgx = canvas:getWidth()
     local imgy = canvas:getHeight()
     love.graphics.setColor(255,255,255)
     love.graphics.setCanvas(canvas)
-    for y = 1, imgy, 16 do
-        for x = 1, imgx, 16 do
+    for y = ty+1, imgy, 16 do
+        for x = tx+1, imgx, 16 do
             dmin = hypot( imgx-16, imgy-16)
             j = 1
             for i = 1, #players do
@@ -76,9 +81,9 @@ function Voronoi(width,hight,players)
                     j = i
                 end
             end
-            love.graphics.setColor(players[j].r, players[j].g, players[j].b)
-            --love.graphics.rectangle('fill', x, y, 16, 16)
-            love.graphics.points( x, y )
+            love.graphics.setColor(players[j].r, players[j].g, players[j].b,alpha)
+            love.graphics.rectangle('fill', x, y, 16, 16)
+            --love.graphics.points( x, y )
         end
     end
     love.graphics.setColor(255, 255, 255)
